@@ -35,6 +35,7 @@ BUCKET=cryptocoin.crahen.net
 
 echo Fetching $PLATFORM archive for "$1" wallet
 cd "$ROOT"
+mkdir -p `dirname $ARCHIVE`
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
 import sys
@@ -47,7 +48,7 @@ FILE=sys.argv[2]
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
-#boto.set_stream_logger('foo')
+boto.set_stream_logger('unpack')
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
