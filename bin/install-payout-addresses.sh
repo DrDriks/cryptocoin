@@ -6,21 +6,15 @@ uname -a | grep -iq win && PLATFORM=windows-`uname -m`
 
 usage() {
 cat<<EOF
-  Install the privatekeys for a keyring into each corresponding wallet. This will install any sensitive information and give the wallets access to the coins associated with those addresses.
+  Install the public addresses from a keyring as payout addresses into each corresponding wallet. This will not install any sensitive information like wallet.dat files or privatekeys, only public addresses.
 
-  Usage: install-keyring.sh [keyring-name]
-  Usage: install-keyring.sh --no-ui [keyring-name]
-  Usage: install-keyring.sh [keyring-name] [root]
-  Usage: install-keyring.sh --no-ui [keyring-name] [root]
+  Usage: install-payout-addresses.sh [keyring-name]
+  Usage: install-payout-addresses.sh [keyring-name] [root]
 EOF
 exit 1
 }
 
-NOUI=
-if [ "$1" == '--no-ui' ]; then
-  NOUI=$1
-  shift
-fi
+
 if [ -z $1 ]; then
   echo Specify a name for the keyring
   usage
@@ -41,14 +35,15 @@ fi
 # Copy the public address into each wallet
 cd "$ROOT"
 cat "$KEYRING" | while read ADDRESS; do
+  [ $ADDRESS != ${ADDRESS/address/} ] || continue
   COIN=$(echo $ADDRESS | sed -e 's,-.*$,,')
   ADDRESS=$(echo $ADDRESS | sed -e 's,[^=]*=,,')
-  read PRIVATEKEY
-  PRIVATEKEY=$(echo $PRIVATEKEY | sed -e 's,[^=]*=,,')
-  echo Installing $COIN privatekey for $ADDRESS
+  echo Installing $COIN payout address $ADDRESS
+  mkdir -p var/wallet/$PLATFORM/$COIN
   "$ROOT"/bin/wallet.sh $NOUI $COIN
-  "$ROOT"/bin/client.sh $COIN importprivkey "$PRIVATEKEY" $i-payout
+  "$ROOT"/bin/client.sh $COIN setaccount "$ADDRESS" $1-payout
   "$ROOT"/bin/client.sh $COIN stop
+  echo "$ADDRESS" > var/wallet/$PLATFORM/$COIN/payout.txt
 done
 
 # Snapshots created with pack.sh will contain this payout address.

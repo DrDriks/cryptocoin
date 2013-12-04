@@ -38,6 +38,7 @@ cd "$ROOT"
 mkdir -p `dirname $ARCHIVE`
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
+import os
 import sys
 import time
 import boto
@@ -48,24 +49,7 @@ FILE=sys.argv[2]
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
-boto.set_stream_logger('unpack')
-
-# Start an upload with 3 retries and exponential backoff.
-conn = boto.connect_s3()
-k = boto.s3.key.Key(conn.get_bucket(BUCKET))
-k.key = FILE
-timeout = 20
-for retry in range(0, 3):
-  try:
-    sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
-    k.get_contents_to_filename(FILE)
-    break
-  except:
-    if retry >= 2:
-      raise
-    print 'Retrying in %d seconds' % timeout
-    time.sleep(timeout)
-    timeout = timeout * 2
+#boto.set_stream_logger('unpack')
 
 def hashfile(filepath):
     sha1 = hashlib.sha1()
@@ -75,12 +59,35 @@ def hashfile(filepath):
     finally:
         f.close()
     return sha1.hexdigest()
+FINGERPRINT=hashfile(FILE)
+
+# Start an upload with 3 retries and exponential backoff.
+conn = boto.connect_s3()
+k = conn.get_bucket(BUCKET).get_key(FILE)
+timeout = 20
+for retry in range(0, 3):
+  try:
+    # Stale check
+    if os.path.exists(FILE):
+      if k.exists():
+        print FILE
+        if FINGERPRINT == k.get_metadata('fingerprint'):
+          break
+    # Download
+    sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
+    k.get_contents_to_filename(FILE)
+    FINGERPRINT=hashfile(FILE)
+    break
+  except:
+    if retry >= 2:
+      raise
+    print 'Retrying in %d seconds' % timeout
+    time.sleep(timeout)
+    timeout = timeout * 2
 
 # Verify fingerprint
-FINGERPRINT = k.get_metadata('fingerprint')
-if FINGERPRINT != hashfile(FILE):
+if FINGERPRINT != k.get_metadata('fingerprint'):
   raise Exception("Fingerprint did not match")
-print FINGERPRINT
 EOF
 
 tar xzf $ARCHIVE

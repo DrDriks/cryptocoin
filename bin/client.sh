@@ -26,16 +26,19 @@ COIN=$1
 CLIENT=$(find -name ${COIN}d\*)
 shift
 
-RETRY=20
-while :; do
-  [ "$RETRY" -eq 0 ] && break
-  RETRY=$(($RETRY-1))
-  # Try connecting to the wallet 
-  $CLIENT -datadir=data -conf=$COIN.conf getdifficulty | grep -qv error && {
-    exec $CLIENT -datadir=data -conf=$COIN.conf "$@"
-  }
-  sleep 3
-done
-
-echo Could not connect to wallet after 1-min
-exit 1
+# Wait for wallet to stop
+if [ -z "$2" -a "$1" == stop ]; then
+  "$CLIENT" -datadir=data -conf=$COIN.conf stop
+  RETRY=20
+  while :; do
+    [ "$RETRY" -eq 0 ] && break
+    RETRY=$(($RETRY-1))
+    "$CLIENT" -datadir=data -conf=$COIN.conf getdifficulty 2>&1 | grep -q "couldn't connect" && break
+  done
+  if [ $RETRY -eq 0 ]; then
+    echo Wallet failed to exit
+    exit 1
+  fi
+else
+  exec $CLIENT -datadir=data -conf=$COIN.conf "$@" 
+fi

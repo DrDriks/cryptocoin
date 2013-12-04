@@ -6,9 +6,9 @@ uname -a | grep -iq win && PLATFORM=windows-`uname -m`
 
 usage() {
 cat<<EOF
-  Store a copy of the wallet software for a particular coin in S3.
-  Usage: pack.sh [coin]
-  Usage: pack.sh [coin] [root]
+  Fetch a copy of the wallet data for a particular coin from S3. This helps your wallet get rapidly up to date.
+  Usage: restore.sh [coin]
+  Usage: restore.sh [coin] [root]
 EOF
 exit 1
 }
@@ -29,35 +29,27 @@ if [ -n "$2" ]; then
   ROOT="$2"
 fi
 
-# Create an archive
-ARCHIVE=release/$PLATFORM/$1.tar.gz 
+# Download the archive
+ARCHIVE=release/data/$1.tar.gz 
 BUCKET=cryptocoin.crahen.net
 
-echo Creating $PLATFORM archive for "$1" wallet
-mkdir -p "$ROOT"/$(dirname $ARCHIVE)
-tar czf "$ROOT"/$ARCHIVE \
-    --exclude=\*backup\* \
-    --exclude=\*blocks\* \
-    --exclude=\*chainstate\* \
-    --exclude=\*database\* \
-    --exclude=\*snapshot\* \
-    --exclude=\*.pid \
-    --exclude=\*.dat \
-    --exclude=\*.sst \
-    --exclude=\*.log \
-    -C "$ROOT" \
-      var/wallet/$PLATFORM/$1
-
-# Upload the archive
+echo Fetching $PLATFORM archive for "$1" wallet
 cd "$ROOT"
+mkdir -p `dirname $ARCHIVE`
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
+import os
 import sys
 import time
 import boto
 
 BUCKET=sys.argv[1]
 FILE=sys.argv[2]
+
+# Log the identity the upload is run as
+conn = boto.connect_iam()
+print 'Using Identity: %s' % conn.get_user().user.arn
+#boto.set_stream_logger('restore')
 
 def hashfile(filepath):
     sha1 = hashlib.sha1()
@@ -69,21 +61,22 @@ def hashfile(filepath):
     return sha1.hexdigest()
 FINGERPRINT=hashfile(FILE)
 
-# Log the identity the upload is run as
-conn = boto.connect_iam()
-print 'Using Identity: %s' % conn.get_user().user.arn
-#boto.set_stream_logger('pack')
-
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
-k = boto.s3.key.Key(conn.get_bucket(BUCKET))
-k.key = FILE
+k = conn.get_bucket(BUCKET).get_key(FILE)
 timeout = 20
 for retry in range(0, 3):
   try:
-    print 'Uploading %s/%s %s' % (BUCKET, k.key, FINGERPRINT)
-    k.set_metadata('fingerprint', FINGERPRINT)
-    k.set_contents_from_filename(FILE, policy='public-read')
+    # Stale check
+    if os.path.exists(FILE):
+      print FILE
+      if k.exists():
+        if FINGERPRINT == k.get_metadata('fingerprint'):
+          break
+    # Download
+    sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
+    k.get_contents_to_filename(FILE)
+    FINGERPRINT=hashfile(FILE)
     break
   except:
     if retry >= 2:
@@ -91,4 +84,10 @@ for retry in range(0, 3):
     print 'Retrying in %d seconds' % timeout
     time.sleep(timeout)
     timeout = timeout * 2
+
+# Verify the fingerprint before using the data
+if FINGERPRINT != k.get_metadata('fingerprint'):
+  raise Exception("Fingerprint did not match")
 EOF
+
+tar xzf $ARCHIVE

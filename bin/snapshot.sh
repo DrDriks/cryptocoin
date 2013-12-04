@@ -6,9 +6,9 @@ uname -a | grep -iq win && PLATFORM=windows-`uname -m`
 
 usage() {
 cat<<EOF
-  Store a copy of the wallet software for a particular coin in S3.
-  Usage: pack.sh [coin]
-  Usage: pack.sh [coin] [root]
+  Store a copy of the wallet data for a particular coin in S3. This helps other wallet instances by allowing them to start from this checkpoint, rather than the begining of time.
+  Usage: snapshot.sh [coin]
+  Usage: snapshot.sh [coin] [root]
 EOF
 exit 1
 }
@@ -30,23 +30,17 @@ if [ -n "$2" ]; then
 fi
 
 # Create an archive
-ARCHIVE=release/$PLATFORM/$1.tar.gz 
+ARCHIVE=release/data/$1.tar.gz 
 BUCKET=cryptocoin.crahen.net
 
-echo Creating $PLATFORM archive for "$1" wallet
+echo Creating archive for "$1" data
 mkdir -p "$ROOT"/$(dirname $ARCHIVE)
 tar czf "$ROOT"/$ARCHIVE \
-    --exclude=\*backup\* \
-    --exclude=\*blocks\* \
-    --exclude=\*chainstate\* \
-    --exclude=\*database\* \
-    --exclude=\*snapshot\* \
+    --exclude=\*wallet.dat \
+    --exclude=\*.conf \
     --exclude=\*.pid \
-    --exclude=\*.dat \
-    --exclude=\*.sst \
-    --exclude=\*.log \
     -C "$ROOT" \
-      var/wallet/$PLATFORM/$1
+      var/wallet/$PLATFORM/$1/data
 
 # Upload the archive
 cd "$ROOT"
@@ -72,7 +66,7 @@ FINGERPRINT=hashfile(FILE)
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
-#boto.set_stream_logger('pack')
+boto.set_stream_logger('snapshot')
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
