@@ -6,34 +6,40 @@ uname -a | grep -iq win && PLATFORM=windows-`uname -m`
 
 usage() {
 cat<<EOF
-  Fetch a copy of the wallet software for a particular coin from S3.
-  Usage: unpack.sh [coin]
-  Usage: unpack.sh [coin] [root]
+  Install the public addresses from a keyring as payout addresses into each corresponding wallet. This will not install any sensitive information like wallet.dat files or privatekeys, only public addresses.
+
+  Usage: install-keyring-public.sh [keyring-name]
+  Usage: install-keyring-public.sh [keyring-name] [root]
 EOF
 exit 1
 }
 
-if [ -z "$1" ]; then
-  echo Specify a type of coin
+
+if [ -z $1 ]; then
+  echo Specify a name for the keyring
   usage
 fi
-OUT="$ROOT"
+KEYRING="$ROOT"/keyring/$1-keyring.public
+if [ ! -f "$KEYRING" ]; then
+  echo No keyring named $1 exists
+  usage
+fi
 if [ -n "$2" ]; then
   if [ ! -d "$2" ]; then
     echo "$2" is not a directory
     usage
   fi
-  OUT="$2"
+  ROOT="$2"
 fi
 
-# Download the archive
-ARCHIVE=release/$PLATFORM/$1.tar.gz 
+# Download the public keyring
+ARCHIVE=keyring/$1-keyring.public
 BUCKET=cryptocoin.crahen.net
 
-echo Fetching $PLATFORM archive for "$1" wallet
-mkdir -p "$ROOT"/var
+echo Fetching keyring "$1"
+mkdir -p "$ROOT"
 mkdir -p `dirname $ARCHIVE`
-cd "$ROOT"/var
+cd "$ROOT"
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
 import os
@@ -90,4 +96,18 @@ for retry in range(0, 3):
 if FINGERPRINT != k.get_metadata('fingerprint'):
   raise Exception("Fingerprint did not match")
 EOF
-tar xzf $ARCHIVE -C "$OUT"
+
+# Copy the public address into each wallet
+cd "$ROOT"
+cat "$KEYRING" | while read ADDRESS; do
+  [ $ADDRESS != ${ADDRESS/address/} ] || continue
+  COIN=$(echo $ADDRESS | sed -e 's,-.*$,,')
+  ADDRESS=$(echo $ADDRESS | sed -e 's,[^=]*=,,')
+  echo Installing $COIN payout address $ADDRESS
+  mkdir -p var/wallet/$PLATFORM/$COIN
+  "$ROOT"/bin/wallet.sh $NOUI $COIN
+  "$ROOT"/bin/client.sh $COIN setaccount "$ADDRESS" $1
+  "$ROOT"/bin/client.sh $COIN stop
+done
+
+# Snapshots created with pack.sh will contain this payout address.

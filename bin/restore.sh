@@ -21,12 +21,13 @@ if [ ! -d "$ROOT"/var/wallet/$PLATFORM/"$1" ]; then
   echo "$1" is not a coin there is a wallet for
   usage
 fi
+OUT="$ROOT"
 if [ -n "$2" ]; then
   if [ ! -d "$2" ]; then
     echo "$2" is not a directory
     usage
   fi
-  ROOT="$2"
+  OUT="$2"
 fi
 
 # Download the archive
@@ -34,7 +35,7 @@ ARCHIVE=release/data/$1.tar.gz
 BUCKET=cryptocoin.crahen.net
 
 echo Fetching $PLATFORM archive for "$1" wallet
-cd "$ROOT"
+cd "$ROOT"/var
 mkdir -p `dirname $ARCHIVE`
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
@@ -59,7 +60,9 @@ def hashfile(filepath):
     finally:
         f.close()
     return sha1.hexdigest()
-FINGERPRINT=hashfile(FILE)
+FINGERPRINT=''
+if os.path.exists(FILE):
+  FINGERPRINT=hashfile(FILE)
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
@@ -69,13 +72,13 @@ for retry in range(0, 3):
   try:
     # Stale check
     if os.path.exists(FILE):
-      print FILE
       if k.exists():
         if FINGERPRINT == k.get_metadata('fingerprint'):
           break
     # Download
     sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
     k.get_contents_to_filename(FILE)
+    print FILE
     FINGERPRINT=hashfile(FILE)
     break
   except:
@@ -89,5 +92,4 @@ for retry in range(0, 3):
 if FINGERPRINT != k.get_metadata('fingerprint'):
   raise Exception("Fingerprint did not match")
 EOF
-
-tar xzf $ARCHIVE
+tar xzf $ARCHIVE -C "$OUT"

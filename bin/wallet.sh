@@ -24,14 +24,14 @@ if [ -z "$1" ]; then
   usage
 fi
 if [ ! -d "$ROOT"/var/wallet/$PLATFORM/"$1" ]; then
-  echo "$1" is not a coin there is a wallet for
+  echo "$1" is no wallet at "$ROOT"/var/wallet/$PLATFORM/"$1" 
   usage
 fi
 
 cd "$ROOT"/var/wallet/$PLATFORM/$1
 COIN=$1
 WALLET=$(find -name $COIN${SUFFIX}\*)
-CLIENT=$(find -name ${COIN}d\*)
+CLIENT=$(find -name ${COIN}d\* -o -name bitcoind\* | head -n 1)
 shift
 
 if [ -e data/$COIN.pid ]; then
@@ -49,7 +49,7 @@ RETRY=20
 while :; do
   [ "$RETRY" -eq 0 ] && break
   RETRY=$(($RETRY-1))
-  $CLIENT -datadir=data -conf=$COIN.conf getdifficulty 2>&1 | grep -qv error && break
+  $CLIENT -datadir=data -conf=$COIN.conf getbalance 2>&1 | grep -qv "error\|connect" && break
   echo Waiting for $COIN wallet
 done
 

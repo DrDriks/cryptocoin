@@ -23,7 +23,7 @@ fi
 cd "$ROOT"/var/wallet/$PLATFORM/$1
 
 COIN=$1
-CLIENT=$(find -name ${COIN}d\*)
+CLIENT=$(find -name ${COIN}d\* -o -name bitcoind\* | head -n 1)
 shift
 
 # Wait for wallet to stop
@@ -39,6 +39,7 @@ if [ -z "$2" -a "$1" == stop ]; then
     echo Wallet failed to exit
     exit 1
   fi
+  sleep 3
 else
   exec $CLIENT -datadir=data -conf=$COIN.conf "$@" 
 fi

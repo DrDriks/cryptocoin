@@ -6,11 +6,36 @@ uname -a | grep -iq win && PLATFORM=windows-`uname -m`
 
 usage() {
 cat<<EOF
-  Print on each line the name of each type of coin that is available.
-  Usage: coins.sh
+  Usage: coins.sh - print installed coins
+  Usage: coins.sh all - print all coins
 EOF
 exit 1
 }
 
-cd "$ROOT"/var/wallet/$PLATFORM/ 
-ls -d1 *
+if [ -z "$1" ]; then
+  cd "$ROOT"/var/wallet/$PLATFORM/ 
+  ls -d1 *
+else
+cat<<EOF
+anoncoin
+bitcoin
+bbqcoin
+digitalcoin
+feathercoin
+frankocoin
+freicoin
+goldcoin
+grandcoin
+litecoin
+megacoin
+namecoin
+novacoin
+orbitcoin
+ppcoin
+primecoin
+stablecoin
+tagcoin
+terracoin
+worldcoin
+EOF
+fi

@@ -34,8 +34,8 @@ ARCHIVE=release/data/$1.tar.gz
 BUCKET=cryptocoin.crahen.net
 
 echo Creating archive for "$1" data
-mkdir -p "$ROOT"/$(dirname $ARCHIVE)
-tar czf "$ROOT"/$ARCHIVE \
+mkdir -p "$ROOT"/var/$(dirname $ARCHIVE)
+tar czf "$ROOT"/var/$ARCHIVE \
     --exclude=\*wallet.dat \
     --exclude=\*.conf \
     --exclude=\*.pid \
@@ -43,7 +43,7 @@ tar czf "$ROOT"/$ARCHIVE \
       var/wallet/$PLATFORM/$1/data
 
 # Upload the archive
-cd "$ROOT"
+cd "$ROOT"/var
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
 import sys
