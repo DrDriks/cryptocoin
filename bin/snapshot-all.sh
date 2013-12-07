@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -ex
 ROOT="$(cd `dirname $0`/..; pwd)"
 uname -a | grep -iq linux && PLATFORM=linux-`uname -m`
 uname -a | grep -iq win && PLATFORM=windows-`uname -m`
@@ -21,7 +21,7 @@ if [ -n "$1" ]; then
 fi
 
 echo Creating snapshots of transaction data ...
-SLEEP=$((10*6))
+SLEEP=$((2*60))
 "$ROOT"/bin/coins.sh | while read COIN; do
   "$ROOT"/bin/wallet.sh "$COIN" || true
   if [ -n "$SLEEP" ]; then

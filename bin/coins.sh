@@ -24,6 +24,7 @@ digitalcoin
 feathercoin
 frankocoin
 freicoin
+galaxycoin
 goldcoin
 grandcoin
 litecoin

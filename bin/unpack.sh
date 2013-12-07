@@ -30,9 +30,8 @@ fi
 ARCHIVE=release/$PLATFORM/$1.tar.bz2 
 BUCKET=cryptocoin.crahen.net
 
-echo Fetching $PLATFORM archive for "$1" wallet
 mkdir -p "$ROOT"/var
-mkdir -p `dirname $ARCHIVE`
+mkdir -p var/`dirname $ARCHIVE`
 cd "$ROOT"/var
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
@@ -92,4 +91,4 @@ for retry in range(0, 3):
 if FINGERPRINT != k.get_metadata('fingerprint'):
   raise Exception("Fingerprint did not match")
 EOF
-tar xzf $ARCHIVE -C "$OUT"
+tar xjf $ARCHIVE -C "$OUT"

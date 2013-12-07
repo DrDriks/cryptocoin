@@ -81,6 +81,7 @@ cd "$ROOT"
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
 import sys
+import os
 import time
 import boto
 

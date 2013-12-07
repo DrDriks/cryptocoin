@@ -1,44 +1,30 @@
 Overview:
 
-This provides simple workspace for managing a few different types of wallets.
+
+Bootstrap Workspace:
+
+ curl https://.../release/bin/bootstrap.sh | sh [workspace]
+ cd [workspace]
 
 
-Commands:
+Create Keyrings:
 
- pack.sh - walks through wallet/ and packs the wallet software and configuration for each currency into release/.
- unpack.sh - walks through release/ and unpacks the wallet software and configuration for each currency into wallet/.
- snapshot.sh - take a snapshot of the blockchain into snapshot/.
- restore.sh - restore a snapshot of the blockchain into wallet/.
+ Generate a new keyring to be used with your collection of wallets. This will generate a new set of addresses and private keys for each currency:
+
+ ./bin/create-keyring.sh [keyring-name]
 
 
-Bootstrap:
- 
- Cut and paste into a cygwin terminal, where COIN is FeatherCoin, BitCoin, etc. -
+ e.g.
+ ./bin/create-keyring.sh master
 
-  mkdir cryptocoin && cd cryptocoin
-  wget https://s3-us-west-2.amazonaws.com/storage.crahen.net/cryptocoin/bootstrap.sh
-  chmod a+x bootstrap.sh
-  ./bootstrap.sh $COIN
 
- To launch that wallet -
+Install Addresses:
 
-  ./wallet/$COIN/wallet.sh
+ Install the addresses from your keyring into the wallets. This will allow you to create transactions to and from the addresses you control.
 
- To get the balance of that wallet -
+ ./bin/install-keyring-public.sh [keyring-name]
 
-  ./wallet/$COIN/client.sh getaccountbalance ''
 
-Getting Started:
-
-  # Get Started
-  cd cryptocoin
-
-  # Install a Wallet
-  ./unpack.sh
-
-  # Restore Blockchain
-  ./restore.sh AnonCoin
-
-  # Save Blockchain
-  ./snapshot.sh LiteCoin
+ e.g.
+ ./bin/install-keyring-public.sh master
 

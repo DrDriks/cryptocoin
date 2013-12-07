@@ -34,12 +34,13 @@ ARCHIVE=release/$PLATFORM/$1.tar.bz2
 BUCKET=cryptocoin.crahen.net
 
 echo Creating $PLATFORM archive for "$1" wallet
-mkdir -p "$ROOT"/$(dirname $ARCHIVE)
-tar cjf "$ROOT"/$ARCHIVE \
+mkdir -p "$ROOT"/var/$(dirname $ARCHIVE)
+tar cjf "$ROOT"/var/$ARCHIVE \
     --exclude=\*backup\* \
     --exclude=\*blocks\* \
     --exclude=\*chainstate\* \
     --exclude=\*database\* \
+    --exclude=\*txleveldb\* \
     --exclude=\*snapshot\* \
     --exclude=\*.pid \
     --exclude=\*.dat \
@@ -49,7 +50,7 @@ tar cjf "$ROOT"/$ARCHIVE \
       var/wallet/$PLATFORM/$1
 
 # Upload the archive
-cd "$ROOT"
+cd "$ROOT"/var
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
 import os

@@ -29,7 +29,7 @@ shift
 # Wait for wallet to stop
 if [ -z "$2" -a "$1" == stop ]; then
   "$CLIENT" -datadir=data -conf=$COIN.conf stop
-  RETRY=20
+  RETRY=30
   while :; do
     [ "$RETRY" -eq 0 ] && break
     RETRY=$(($RETRY-1))
@@ -39,7 +39,7 @@ if [ -z "$2" -a "$1" == stop ]; then
     echo Wallet failed to exit
     exit 1
   fi
-  sleep 3
+  sleep 5
 else
   exec $CLIENT -datadir=data -conf=$COIN.conf "$@" 
 fi

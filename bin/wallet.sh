@@ -37,24 +37,24 @@ shift
 if [ -e data/$COIN.pid ]; then
   if [ -e /proc/`cat data/$COIN.pid` ]; then
     echo $COIN wallet daemon already running `cat data/$COIN.pid`
-    exit 1
+    exit 1 
   fi
 fi
 $WALLET -datadir=data -pid=$COIN.pid -conf=$COIN.conf "$@" -server -min &
-PID=$!
-echo $PID > data/$COIN.pid 
 
 # Ping the wallet before returning success
-RETRY=20
+RETRY=30
 while :; do
   [ "$RETRY" -eq 0 ] && break
   RETRY=$(($RETRY-1))
   $CLIENT -datadir=data -conf=$COIN.conf getbalance 2>&1 | grep -qv "error\|connect" && break
+  $CLIENT -datadir=data -conf=$COIN.conf getbalance 2>&1 || true
+  sleep 5
   echo Waiting for $COIN wallet
 done
 
 if [ $RETRY -eq 0 ]; then
-  echo Could not connect to wallet after 1-min
+  echo Could not connect to wallet after 3-min
   echo kill -9 $PID
   exit 1
 fi
