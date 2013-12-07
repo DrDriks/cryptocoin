@@ -21,7 +21,7 @@ if [ -n "$1" ]; then
 fi
 
 echo Creating snapshots of transaction data ...
-SLEEP=
+SLEEP=$((10*6))
 "$ROOT"/bin/coins.sh | while read COIN; do
   "$ROOT"/bin/wallet.sh "$COIN" || true
   if [ -n "$SLEEP" ]; then

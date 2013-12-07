@@ -31,7 +31,7 @@ if [ -n "$2" ]; then
 fi
 
 # Download the archive
-ARCHIVE=release/data/$1.tar.gz 
+ARCHIVE=data/$1.tar.gz 
 BUCKET=cryptocoin.crahen.net
 
 echo Fetching $PLATFORM archive for "$1" wallet
@@ -50,6 +50,7 @@ FILE=sys.argv[2]
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
+print 'Using Path: %s' % os.getcwd()
 #boto.set_stream_logger('restore')
 
 def hashfile(filepath):
@@ -92,4 +93,4 @@ for retry in range(0, 3):
 if FINGERPRINT != k.get_metadata('fingerprint'):
   raise Exception("Fingerprint did not match")
 EOF
-tar xzf $ARCHIVE -C "$OUT"
+tar xjf $ARCHIVE -C "$OUT"

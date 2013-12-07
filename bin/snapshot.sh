@@ -30,22 +30,51 @@ if [ -n "$2" ]; then
 fi
 
 # Create an archive
-ARCHIVE=release/data/$1.tar.gz 
+ARCHIVE=data/$1 
 BUCKET=cryptocoin.crahen.net
 
-echo Creating archive for "$1" data
+echo Creating archives for "$1" data
 mkdir -p "$ROOT"/var/$(dirname $ARCHIVE)
-tar czf "$ROOT"/var/$ARCHIVE \
-    --exclude=\*wallet.dat \
-    --exclude=\*.conf \
-    --exclude=\*.pid \
-    -C "$ROOT" \
-      var/wallet/$PLATFORM/$1/data
+rm -f "$ROOT"/var/$(dirname $ARCHIVE)/$1-*
+cd "$ROOT"
+
+# Stable order
+list() {
+find var/wallet/$PLATFORM/$1/data/ -type f \
+     ! -name \*wallet.dat -a \
+     ! -name \*peers.dat -a \
+     ! -name \*.conf -a \
+     ! -name \*.pid -a \
+     ! -name \*.lock -a \
+     ! -name \*.log -a \
+     ! -name \*LOG\* -a \
+     ! -name \*LOCK\* -a \
+     ! -name \*CURRENT -a \
+     ! -name \*blkindex.dat -a \
+     -print | sort -n
+F=var/wallet/$PLATFORM/$1/data/blkindex.dat
+[ -e "$F" ] && echo $F
+F=var/wallet/$PLATFORM/$1/data/blocks/index/CURRENT
+[ -e "$F" ] && echo $F
+F=var/wallet/$PLATFORM/$1/data/chainstate/CURRENT
+[ -e "$F" ] && echo $F
+}
+
+list $1 | tar cv -T - | split -b 25m - var/$ARCHIVE-
+cd "$ROOT"/var
+find $(dirname "$ARCHIVE")/* -name $1\* -type f | sort -n | while read i; do
+  # Stable Compressor
+  mv $i{,.tar}
+  bzip2 $i.tar
+done
+
 
 # Upload the archive
+find $(dirname "$ARCHIVE")/* -name $1\* -type f | sort -n | while read FILE; do
 cd "$ROOT"/var
-cat<<'EOF'|python - "$BUCKET" $ARCHIVE
+cat<<'EOF'|python - "$BUCKET" $FILE
 import hashlib
+import os
 import sys
 import time
 import boto
@@ -66,15 +95,22 @@ FINGERPRINT=hashfile(FILE)
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
-boto.set_stream_logger('snapshot')
+print 'Using Path: %s' % os.getcwd()
+#boto.set_stream_logger('snapshot')
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
-k = boto.s3.key.Key(conn.get_bucket(BUCKET))
+k = conn.get_bucket(BUCKET).get_key(FILE)
+if not k:
+  k = boto.s3.key.Key(conn.get_bucket(BUCKET))
 k.key = FILE
 timeout = 20
 for retry in range(0, 3):
   try:
+    if os.path.exists(FILE):
+      if k.exists():
+        if FINGERPRINT == k.get_metadata('fingerprint'):
+          break
     print 'Uploading %s/%s %s' % (BUCKET, k.key, FINGERPRINT)
     k.set_metadata('fingerprint', FINGERPRINT)
     k.set_contents_from_filename(FILE, policy='public-read')
@@ -86,3 +122,4 @@ for retry in range(0, 3):
     time.sleep(timeout)
     timeout = timeout * 2
 EOF
+done

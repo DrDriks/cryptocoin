@@ -104,11 +104,17 @@ print 'Using Identity: %s' % conn.get_user().user.arn
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
-k = boto.s3.key.Key(conn.get_bucket(BUCKET))
+k = conn.get_bucket(BUCKET).get_key(FILE)
+if not k:
+  k = boto.s3.key.Key(conn.get_bucket(BUCKET))
 k.key = FILE
 timeout = 20
 for retry in range(0, 3):
   try:
+    if os.path.exists(FILE):
+      if k.exists():
+        if FINGERPRINT == k.get_metadata('fingerprint'):
+          break
     print 'Uploading %s/%s %s' % (BUCKET, k.key, FINGERPRINT)
     k.set_metadata('fingerprint', FINGERPRINT)
     k.set_contents_from_filename(FILE, policy='public-read')

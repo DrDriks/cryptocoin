@@ -30,12 +30,12 @@ if [ -n "$2" ]; then
 fi
 
 # Create an archive
-ARCHIVE=release/$PLATFORM/$1.tar.gz 
+ARCHIVE=release/$PLATFORM/$1.tar.bz2
 BUCKET=cryptocoin.crahen.net
 
 echo Creating $PLATFORM archive for "$1" wallet
 mkdir -p "$ROOT"/$(dirname $ARCHIVE)
-tar czf "$ROOT"/$ARCHIVE \
+tar cjf "$ROOT"/$ARCHIVE \
     --exclude=\*backup\* \
     --exclude=\*blocks\* \
     --exclude=\*chainstate\* \
@@ -52,6 +52,7 @@ tar czf "$ROOT"/$ARCHIVE \
 cd "$ROOT"
 cat<<'EOF'|python - "$BUCKET" $ARCHIVE
 import hashlib
+import os
 import sys
 import time
 import boto
@@ -72,15 +73,22 @@ FINGERPRINT=hashfile(FILE)
 # Log the identity the upload is run as
 conn = boto.connect_iam()
 print 'Using Identity: %s' % conn.get_user().user.arn
+print 'Using Path: %s' % os.getcwd()
 #boto.set_stream_logger('pack')
 
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
-k = boto.s3.key.Key(conn.get_bucket(BUCKET))
+k = conn.get_bucket(BUCKET).get_key(FILE)
+if not k:
+  k = boto.s3.key.Key(conn.get_bucket(BUCKET))
 k.key = FILE
 timeout = 20
 for retry in range(0, 3):
   try:
+    if os.path.exists(FILE):
+      if k.exists():
+        if FINGERPRINT == k.get_metadata('fingerprint'):
+          break
     print 'Uploading %s/%s %s' % (BUCKET, k.key, FINGERPRINT)
     k.set_metadata('fingerprint', FINGERPRINT)
     k.set_contents_from_filename(FILE, policy='public-read')

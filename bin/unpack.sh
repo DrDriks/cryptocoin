@@ -27,7 +27,7 @@ if [ -n "$2" ]; then
 fi
 
 # Download the archive
-ARCHIVE=release/$PLATFORM/$1.tar.gz 
+ARCHIVE=release/$PLATFORM/$1.tar.bz2 
 BUCKET=cryptocoin.crahen.net
 
 echo Fetching $PLATFORM archive for "$1" wallet
@@ -65,6 +65,8 @@ if os.path.exists(FILE):
 # Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
 k = conn.get_bucket(BUCKET).get_key(FILE)
+if not k:
+  k = boto.s3.key.Key(conn.get_bucket(BUCKET))
 timeout = 20
 for retry in range(0, 3):
   try:
