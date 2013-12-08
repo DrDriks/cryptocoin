@@ -50,6 +50,7 @@ cat "$KEYRING" | while read ADDRESS; do
   "$ROOT"/bin/client.sh $COIN importprivkey "$PRIVATEKEY" $1
   "$ROOT"/bin/client.sh $COIN setaccount "$ADDRESS" $1
   "$ROOT"/bin/client.sh $COIN stop
+  sleep 10
 done
 
 # Snapshots created with pack.sh will contain this payout address.

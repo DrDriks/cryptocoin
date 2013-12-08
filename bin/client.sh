@@ -34,12 +34,12 @@ if [ -z "$2" -a "$1" == stop ]; then
     [ "$RETRY" -eq 0 ] && break
     RETRY=$(($RETRY-1))
     "$CLIENT" -datadir=data -conf=$COIN.conf getdifficulty 2>&1 | grep -q "couldn't connect" && break
+    sleep 5
   done
   if [ $RETRY -eq 0 ]; then
     echo Wallet failed to exit
     exit 1
   fi
-  sleep 5
 else
   exec $CLIENT -datadir=data -conf=$COIN.conf "$@" 
 fi

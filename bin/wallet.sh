@@ -43,14 +43,13 @@ fi
 $WALLET -datadir=data -pid=$COIN.pid -conf=$COIN.conf "$@" -server -min &
 
 # Ping the wallet before returning success
-RETRY=30
+RETRY=60
 while :; do
+  echo Waiting for $COIN wallet
   [ "$RETRY" -eq 0 ] && break
   RETRY=$(($RETRY-1))
   $CLIENT -datadir=data -conf=$COIN.conf getbalance 2>&1 | grep -qv "error\|connect" && break
-  $CLIENT -datadir=data -conf=$COIN.conf getbalance 2>&1 || true
   sleep 5
-  echo Waiting for $COIN wallet
 done
 
 if [ $RETRY -eq 0 ]; then

@@ -108,7 +108,7 @@ cat "$KEYRING" | while read ADDRESS; do
   "$ROOT"/bin/wallet.sh $NOUI $COIN
   "$ROOT"/bin/client.sh $COIN setaccount "$ADDRESS" $1
   "$ROOT"/bin/client.sh $COIN stop
-  sleep 10
+  sleep 20
 done
 
 # Snapshots created with pack.sh will contain this payout address.

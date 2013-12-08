@@ -65,6 +65,7 @@ WALLET_ARGS="-listen=0 $WALLET_ARGS"
 
   # Clean up temporary wallet
   echo Generated $COIN address "$ADDRESS"
+  sleep 20
   rm -rf "$TMPDIR"/var/wallet/$PLATFORM/$COIN/ || true
 
 done
