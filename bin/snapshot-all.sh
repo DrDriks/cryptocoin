@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 ROOT="$(cd `dirname $0`/..; pwd)"
 uname -a | grep -iq linux && PLATFORM=linux-`uname -m`
 uname -a | grep -iq win && PLATFORM=windows-`uname -m`
