@@ -31,13 +31,13 @@ if [ -n "$2" ]; then
 fi
 
 # Download the archive
-ARCHIVE=data/$1.tar.gz 
 BUCKET=cryptocoin.crahen.net
 
 echo Fetching $PLATFORM archive for "$1" wallet
 cd "$ROOT"/var
-mkdir -p `dirname $ARCHIVE`
-cat<<'EOF'|python - "$BUCKET" $ARCHIVE
+mkdir -p data
+rm -f data/$1-*tar
+cat<<'EOF'|python - "$BUCKET" $1
 import hashlib
 import os
 import sys
@@ -45,7 +45,7 @@ import time
 import boto
 
 BUCKET=sys.argv[1]
-FILE=sys.argv[2]
+COIN=sys.argv[2]
 
 # Log the identity the upload is run as
 conn = boto.connect_iam()
@@ -61,36 +61,53 @@ def hashfile(filepath):
     finally:
         f.close()
     return sha1.hexdigest()
-FINGERPRINT=''
-if os.path.exists(FILE):
-  FINGERPRINT=hashfile(FILE)
 
-# Start an upload with 3 retries and exponential backoff.
 conn = boto.connect_s3()
-k = conn.get_bucket(BUCKET).get_key(FILE)
-timeout = 20
-for retry in range(0, 3):
-  try:
-    # Stale check
-    if os.path.exists(FILE):
-      if k.exists():
-        if FINGERPRINT == k.get_metadata('fingerprint'):
-          break
-    # Download
-    sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
-    k.get_contents_to_filename(FILE)
-    print FILE
-    FINGERPRINT=hashfile(FILE)
-    break
-  except:
-    if retry >= 2:
-      raise
-    print 'Retrying in %d seconds' % timeout
-    time.sleep(timeout)
-    timeout = timeout * 2
+bucket = conn.get_bucket(BUCKET)
 
-# Verify the fingerprint before using the data
-if FINGERPRINT != k.get_metadata('fingerprint'):
-  raise Exception("Fingerprint did not match")
+def download(FILE):
+  FINGERPRINT=''
+  if os.path.exists(FILE):
+    FINGERPRINT=hashfile(FILE)
+  
+  # Start an upload with 3 retries and exponential backoff.
+  k = bucket.get_key(FILE)
+  timeout = 20
+  for retry in range(0, 3):
+    try:
+      # Stale check
+      if os.path.exists(FILE):
+        if k.exists():
+          if FINGERPRINT == k.get_metadata('fingerprint'):
+            break
+      # Download
+      sys.stdout.write('Downloading %s/%s ' % (BUCKET, k.key))
+      k.get_contents_to_filename(FILE)
+      print FILE
+      FINGERPRINT=hashfile(FILE)
+      break
+    except:
+      if retry >= 2:
+        raise
+      print 'Retrying in %d seconds' % timeout
+      time.sleep(timeout)
+      timeout = timeout * 2
+  
+  # Verify the fingerprint before using the data
+  if FINGERPRINT != k.get_metadata('fingerprint'):
+    raise Exception("Fingerprint did not match")
+
+# Download each chunk of the data
+for k in bucket.get_all_keys(prefix='data/' + COIN + '-'):
+  download(k.name)
 EOF
-tar xjf $ARCHIVE -C "$OUT"
+
+# Decompress and extract
+dump() {
+find "$ROOT"/var/data -type f -name $1-\*.tar.bz2 -print | sort -n | while read FILE; do
+  cat "$FILE" | bzip2 -d 
+done
+}
+
+cd "$ROOT"
+dump $1 | tar xv
