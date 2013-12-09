@@ -30,7 +30,7 @@ fi
 
 cd "$ROOT"/var/wallet/$PLATFORM/$1
 COIN=$1
-WALLET=$(find -name $COIN${SUFFIX}\*)
+WALLET=$(find -name $COIN${SUFFIX}\* -o -name ${COIN}d | head -n 1)
 CLIENT=$(find -name ${COIN}d\* -o -name bitcoind\* | head -n 1)
 shift
 
