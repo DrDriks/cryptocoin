@@ -51,9 +51,9 @@ sets = conn.get_all_rrsets(HOSTEDZONEID, None)
 for rset in sets:
   if rset.name == NAME + ".":
     previous_value = rset.resource_records[0]
-    change = changes.add_change("DELETE", NAME + ".", "CNAME", 60)
+    change = changes.add_change("DELETE", NAME + ".", "A", 60)
     change.add_value(previous_value)
-change = changes.add_change("CREATE", NAME + ".", "CNAME", 60)
+change = changes.add_change("CREATE", NAME + ".", "A", 60)
 change.add_value(IP)
 result = changes.commit()
 print result

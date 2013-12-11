@@ -21,6 +21,7 @@ anoncoin
 bitcoin
 bbqcoin
 digitalcoin
+fastcoin
 feathercoin
 frankocoin
 freicoin
