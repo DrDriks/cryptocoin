@@ -83,6 +83,7 @@ class Coinse:
     coin = coin.lower()
     if not len(self.markets) > 0:
       self.GetCoinsePrices()
+    print float(self.markets[coin]['bid'].to_eng_string())
     return float(self.markets[coin]['bid'].to_eng_string())
 
   def CacheSample(self):

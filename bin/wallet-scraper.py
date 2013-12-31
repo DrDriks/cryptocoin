@@ -110,7 +110,8 @@ class Wallet:
      'network-hashes-per-second':  self.GetNetworkHashesPerSecond(),
      'network-timestamp': self.GetNetworkTimestamp(),
      'network-delay': time.time() - self.GetNetworkTimestamp(),
-     'yield-per-second': self.GetYieldPerSecond()
+     'yield-per-second': self.GetYieldPerSecond(),
+     'yield-per-hr': self.GetYieldPerSecond()*60*60*10000
     })
 
   def __fork__(self, *args):
