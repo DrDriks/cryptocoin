@@ -40,6 +40,14 @@ configure() {
   mkdir -p "$RUN"
 cat>"$BIN"<<EOF
 #!/bin/sh
+function ping {
+  while : ; do
+    netstat -ltn | grep -q :$PORT && break
+    echo Waiting for wallet
+    sleep 30
+  done
+}
+ping &
 exec "$BINLIB"/${COIN}d -conf="$BINLIB"/$COIN.conf -datadir="$RUN" "\$@"
 EOF
   chmod a+rx "$BIN"

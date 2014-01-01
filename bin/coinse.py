@@ -22,10 +22,13 @@ class Coinse:
 
   def __init__(self):
     self.cmd=os.path.dirname(os.path.realpath(__file__)) + '/coinbase.sh'
-    self.var=os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + 'var/run/hashcash/'
+    self.var=os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + '/var/run/hashcash/'
     self.db = '%s/coinse-%s.db' % (self.var, PERIOD)
     self.table = 'coinse'
     self.markets = dict({})
+
+  def GetName(self):
+    return "coins-e"
 
   def GetCoinbasePrices(self):
     """Get the effective bid and ask from coinbase"""
@@ -56,25 +59,27 @@ class Coinse:
            time.sleep(TIMEOUT)
        raise Exception('Could not fetch %s' % URL)
 
-    def GetMarketQuote(now, btcAskToUSD, btcBidToUSD, coin, market):
+    def GetMarketQuote(now, coin, market):
       ask = Decimal(market['marketstat']['ask'])
       bid = Decimal(market['marketstat']['bid'])
       vol = market['marketstat']['24h']['volume']
-      return dict({'timestamp':now, 'coin':coin, 'ask':ask, 'bid':bid, 'volume':vol})
+      return dict({'timestamp':now, 'coin':coin, 'ask':ask, 'bid':bid, 'volume':vol,'exchange':self.GetName()})
 
     now = time.time()
     now = now - (now%(5*60))
     data = []
 
     btcAskToUSD, btcBidToUSD = self.GetCoinbasePrices()
-    data.append(dict({'timestamp':now, 'coin':'btc', 'ask':btcAskToUSD, 'bid':btcBidToUSD, 'volume':0}))
+    p = dict({'timestamp':now, 'coin':'btc', 'ask':btcAskToUSD, 'bid':btcBidToUSD, 'volume':0,'exchange':self.GetName()})
+    self.markets['btc'] = p
+    data.append(p)
 
     markets = GetMarkets()
     for key in markets.keys():
       if key.endswith('_BTC'):
         coin = key.replace('_BTC', '')
         coin = coin.lower()
-        p = GetMarketQuote(now, btcAskToUSD, btcBidToUSD, coin, markets[key])
+        p = GetMarketQuote(now, coin, markets[key])
         self.markets[coin] = p
         data.append(p)
     return data
@@ -83,7 +88,6 @@ class Coinse:
     coin = coin.lower()
     if not len(self.markets) > 0:
       self.GetCoinsePrices()
-    print float(self.markets[coin]['bid'].to_eng_string())
     return float(self.markets[coin]['bid'].to_eng_string())
 
   def CacheSample(self):
